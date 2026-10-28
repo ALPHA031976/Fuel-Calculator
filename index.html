@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Nigeria Fuel Pricing Calculator: enter production cost, crude price, refinery toll, exchange rate and margin to see the petrol price under a cost-based model. Created by Olusola Adun, 2026.">
+<meta name="author" content="Olusola Adun">
+<title>Nigeria Fuel Pricing Calculator</title>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: control panel (inputs) beside a results column; formula ledger runs full width below. */
+:root{
+  --bg:#F3F5F2; --surface:#FFFFFF; --ink:#16231C; --muted:#5B6B62; --line:#D5DDD7;
+  --green:#0B6B43; --green-soft:#E3F1E9; --crude:#2A2F33; --amber:#B7791F; --red:#B3432F; --red-soft:#F7E6E2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101613; --surface:#18211C; --ink:#E6EEE8; --muted:#9AAAA1; --line:#2C3832;
+  --green:#4CC28B; --green-soft:#16342A; --crude:#C9D1CC; --amber:#E0A84A; --red:#E57B66; --red-soft:#3A201B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101613; --surface:#18211C; --ink:#E6EEE8; --muted:#9AAAA1; --line:#2C3832;
+  --green:#4CC28B; --green-soft:#16342A; --crude:#C9D1CC; --amber:#E0A84A; --red:#E57B66; --red-soft:#3A201B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.wrap>*{min-width:0}
+header h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,4.4vw,44px);line-height:1.05;margin:0 0 10px;text-wrap:balance;letter-spacing:-.01em}
+header p{margin:0;max-width:68ch;color:var(--muted)}
+header p strong{color:var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.presets button{font:500 13px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.presets button:hover{border-color:var(--green)}
+.presets button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--surface)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 8px}
+.group{border-top:1px solid var(--line);padding:14px 0 10px}
+.group:first-child{border-top:0;padding-top:0}
+.group h2{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:4px 10px;align-items:center;margin-bottom:10px}
+.field label{font-size:14px;font-weight:500}
+.field small{grid-column:1/-1;color:var(--muted);font-size:12.5px;line-height:1.35}
+.num{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);overflow:hidden}
+.num span{font:500 12px var(--mono);color:var(--muted);padding:0 6px}
+.num input{width:100%;min-width:0;border:0;background:transparent;color:var(--ink);font:500 14px var(--mono);padding:7px 6px 7px 0;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--green)}
+.quick{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.quick button{font:500 12px var(--body);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:5px;padding:4px 9px;cursor:pointer}
+.quick button:hover{border-color:var(--green);color:var(--green)}
+.results{display:grid;gap:18px;min-width:0}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.hero .label{font-size:13px;color:var(--muted);font-weight:500}
+.price{font-family:var(--display);font-weight:800;font-size:clamp(46px,8vw,72px);line-height:1;color:var(--green);font-variant-numeric:tabular-nums;margin:4px 0 2px}
+.price small{font:600 16px var(--body);color:var(--muted);margin-left:6px}
+.bars{display:grid;gap:10px;margin-top:16px}
+.bar{display:grid;grid-template-columns:150px minmax(0,1fr) 78px;gap:10px;align-items:center;font-size:13px}
+@media (max-width:480px){.bar{grid-template-columns:96px minmax(0,1fr) 64px}}
+.track{height:14px;background:var(--bg);border-radius:3px;overflow:hidden}
+.fill{height:100%;border-radius:3px;transition:width .35s ease}
+.fill.g{background:var(--green)} .fill.r{background:var(--red)} .fill.c{background:var(--muted)}
+.bar b{font:700 13px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.verdict{margin-top:14px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.stats{grid-template-columns:minmax(0,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px;align-content:start}
+.stat .k{font-size:13px;color:var(--muted);font-weight:500}
+.stat .v{font:700 24px var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat .d{font-size:12.5px;color:var(--muted);line-height:1.4}
+.pill{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 6px;justify-self:start}
+.pill.ok{background:var(--green-soft);color:var(--green)} .pill.warn{background:var(--red-soft);color:var(--red)}
+.ledger{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.ledger h2,.method h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0 0 6px}
+.ledger p{margin:0 0 12px;color:var(--muted);max-width:72ch}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.total td{font-weight:700;border-bottom:0}
+.formula{margin-top:16px;padding:14px 16px;background:var(--bg);border-radius:8px;font:500 13.5px/1.7 var(--mono);overflow-x:auto;white-space:nowrap}
+.formula .hl{color:var(--green);font-weight:700}
+.method{display:grid;gap:10px;max-width:76ch}
+.method p{margin:0;color:var(--muted)}
+.method p strong{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+<style>html{-webkit-text-size-adjust:100%}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Right Reform, Wrong Model · companion calculator</div>
+    <h1>Nigeria Fuel Pricing Calculator</h1>
+    <p>Change any input below. The method stays the same: <strong>the price is built up from real costs, plus any margin government openly chooses.</strong> Whatever numbers you use, no payment is needed to hold the price below cost, and the choice stays with Nigerians. Some inputs are facts to verify; others are choices to authorise.</p>
+  </header>
+
+  <div>
+    <div class="eyebrow">Try a scenario</div>
+    <div class="presets" id="presets">
+      <button type="button" data-p="paper" aria-pressed="true">The paper’s assumptions</button>
+      <button type="button" data-p="critic" aria-pressed="false">A critic’s: value crude at the world price</button>
+      <button type="button" data-p="target" aria-pressed="false">Production cost cut to $20</button>
+      <button type="button" data-p="cheapoil" aria-pressed="false">Oil falls to $60</button>
+      <button type="button" data-p="weaknaira" aria-pressed="false">Naira weakens to ₦1,600</button>
+      <button type="button" data-p="parity" aria-pressed="false">Margin set to match crude-sale revenue</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <form class="panel" id="f" autocomplete="off">
+      <div class="group">
+        <h2>World market · facts to verify</h2>
+        <div class="field"><label for="V">World crude price</label><div class="num"><span>$</span><input id="V" type="number" step="1" min="20" max="200"></div>
+          <small>Per barrel. Drives import parity and export earnings.</small></div>
+        <div class="field"><label for="fx">Exchange rate</label><div class="num"><span>₦/$</span><input id="fx" type="number" step="10" min="100" max="5000"></div></div>
+      </div>
+      <div class="group">
+        <h2>Value placed on government crude · a choice</h2>
+        <div class="field"><label for="ce">Crude charged at</label><div class="num"><span>$</span><input id="ce" type="number" step="1" min="0" max="200"></div>
+          <small>The paper uses production cost, which operators already recover. Critics may prefer the world price. Your call.</small>
+          <div class="quick"><button type="button" data-ce="cost">Production cost ($44)</button><button type="button" data-ce="world">World price</button></div></div>
+      </div>
+      <div class="group">
+        <h2>Refining chain, per barrel · facts to verify</h2>
+        <div class="field"><label for="toll">Refinery toll</label><div class="num"><span>$</span><input id="toll" type="number" step="0.5" min="0" max="50"></div>
+          <small>Paid to the refinery for processing. Published fees range from about $1.50 to $13 a barrel.</small>
+          <div class="quick"><button type="button" data-toll="5">$5</button><button type="button" data-toll="7.5">$7.50</button><button type="button" data-toll="10">$10</button><button type="button" data-toll="15">$15</button></div></div>
+        <div class="field"><label for="deliv">Crude transport</label><div class="num"><span>$</span><input id="deliv" type="number" step="0.25" min="0" max="20"></div>
+          <small>Paid to the pipeline or shipping operator, not the refinery.</small></div>
+        <div class="field"><label for="fac">Storage and truck loading</label><div class="num"><span>$</span><input id="fac" type="number" step="0.25" min="0" max="20"></div></div>
+        <div class="field"><label for="admin">Tracking and admin</label><div class="num"><span>$</span><input id="admin" type="number" step="0.1" min="0" max="10"></div></div>
+      </div>
+      <div class="group">
+        <h2>Getting it to the pump · fact to verify</h2>
+        <div class="field"><label for="ds">Distribution and retail</label><div class="num"><span>₦/L</span><input id="ds" type="number" step="5" min="0" max="500"></div>
+          <small>Trucks, depots, marketers and filling stations.</small></div>
+      </div>
+      <div class="group">
+        <h2>Policy choice</h2>
+        <div class="field"><label for="m">Published margin</label><div class="num"><span>₦/L</span><input id="m" type="number" step="10" min="0" max="1000"></div>
+          <input id="mr" type="range" min="0" max="800" step="10" aria-label="Published margin slider">
+          <small>Added openly to every litre sold at home, with a stated purpose. Zero means full cost.</small></div>
+        <div class="field"><label for="bpd">Programme crude</label><div class="num"><span>bbl/d</span><input id="bpd" type="number" step="1000" min="50000" max="1500000"></div>
+          <small>Government barrels refined each day. Nigeria’s needs come first; surplus is exported.</small></div>
+      </div>
+    </form>
+
+    <div class="results">
+      <section class="hero" aria-live="polite">
+        <div class="label">Petrol at the pump under the proposed model</div>
+        <div class="price" id="pump">₦535<small>per litre</small></div>
+        <div class="bars">
+          <div class="bar"><span>Proposed model</span><div class="track"><div class="fill g" id="b1"></div></div><b id="b1v"></b></div>
+          <div class="bar"><span>Import parity (current model)</span><div class="track"><div class="fill r" id="b2"></div></div><b id="b2v"></b></div>
+        </div>
+        <div class="verdict" id="verdict"></div>
+      </section>
+
+      <div class="stats">
+        <div class="stat"><span class="k">Price-support payment needed</span><span class="v">₦0</span><span class="pill ok">Price covers cost</span><span class="d">The price is built from costs, so nothing is paid to hold it down. Start-up investment and payment risks still need funding and audit.</span></div>
+        <div class="stat"><span class="k">Government receipts vs selling the crude</span><span class="v" id="gap"></span><span class="pill" id="gapPill"></span><span class="d" id="gapD"></span></div>
+        <div class="stat"><span class="k">Price that matches crude-sale revenue</span><span class="v" id="be"></span><span class="d" id="beD"></span></div>
+        <div class="stat"><span class="k">Fuel buyers’ saving vs import parity</span><span class="v" id="save"></span><span class="d">Per year, across all products sold at home, before any margin goes to the budget.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="ledger">
+    <h2>How the price is built</h2>
+    <p>One barrel of government crude, followed from the well to the pump with your inputs. Shared across the products by value, petrol carries its share of the cost.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Step</th><th style="text-align:right">Per barrel</th></tr></thead>
+      <tbody id="stack"></tbody>
+    </table></div>
+    <div class="formula" id="formula"></div>
+  </section>
+
+  <section class="method">
+    <h2>What stays true whatever you enter</h2>
+    <p><strong>No hemorrhaging.</strong> Every input is a cost or an openly chosen margin, so the price always covers what the fuel costs to make and deliver. Every routine operating cost has an identified source of revenue, and no fuel leaves the refinery unpaid.</p>
+    <p><strong>Nothing hidden.</strong> If the price is set below what selling the crude would earn, the difference is shown above. That is the value returned to Nigerians as fairly priced fuel, and it belongs in the budget, approved and published.</p>
+    <p><strong>The decision stays at home.</strong> World markets set import parity. Here, Nigerians choose the inputs and the margin.</p>
+    <p>Method: products follow a typical Nigerian refinery yield (52% petrol, 18% diesel, 19% jet fuel, 3% cooking gas, 5% naphtha), valued at early-October 2026 refining margins. Costs are shared across products by value. Home demand is 45 million litres of petrol a day plus other products; surplus is exported at world prices less $3 a barrel, with exporters keeping a quarter of the export margin plus $1 a barrel. Short-term finance is 10% a year for 20 days on the crude value. Import parity adds $5 a barrel for shipping and port costs. All figures are illustrative.</p>
+    <p><strong>Created by Olusola Adun, 2026.</strong> A companion to the policy paper “Right Reform, Wrong Model”. Free for public use.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+  var DEF={V:100,fx:1330,ce:44,toll:7.5,deliv:1,fac:2,admin:0.5,ds:95,m:0,bpd:544267};
+  var PRESETS={
+    paper:{},
+    critic:{ce:'world'},
+    target:{ce:20},
+    cheapoil:{V:60},
+    weaknaira:{fx:1600},
+    parity:{m:'parity'}
+  };
+  var PROD=[["pms",.52,32,45],["ago",.18,76,14.3],["jet",.19,65,2.1],["lpg",.03,-30,8],["nap",.05,-5,0]];
+  var RATE=.10,CYC=20,EXFEE=1,XSHARE=.25,EXPDED=3,LAG=30,PREM=5;
+  var ids=["V","fx","ce","toll","deliv","fac","admin","ds","m","bpd"];
+  var $=function(id){return document.getElementById(id)};
+
+  function model(p){
+    var I=p.bpd*365/1e6;                       // million barrels a year
+    var other=p.deliv+p.toll+p.fac+p.admin;
+    var fin=p.ce*RATE*CYC/365, finV=p.V*RATE*CYC/365;
+    var fc=p.ce+other+fin, fcV=p.V+other+finV;
+    var slate=0; PROD.forEach(function(r){slate+=r[1]*(p.V+r[2])});
+    var k=fc/slate, kR=fcV/slate;
+    var dom=0,exp=0,em=0,exv=0,sq=0,domL=0;
+    PROD.forEach(function(r){
+      var o=I*r[1], dem=r[3]*365/159, dd=Math.min(o,dem), e=o-dd;
+      dom+=dd*k*(p.V+r[2]); exp+=e*(p.V+r[2]-EXPDED); em+=e*(p.V+r[2]-EXPDED-kR*(p.V+r[2])); exv+=e;
+      sq+=dd*(p.V+r[2]+PREM); domL+=dd*159;    // million litres a year
+    });
+    var rshare=XSHARE*Math.max(0,em)+EXFEE*exv;
+    var gov=dom+exp-I*other-I*p.V*RATE*CYC/365-rshare;      // $m a year, before margin
+    var crude=I*p.V*(1-RATE*LAG/365);
+    var marginRev=p.m*domL/p.fx;
+    var gate=k*(p.V+PROD[0][2])*p.fx/159;
+    var pump=gate+p.ds+p.m;
+    var ip=(p.V+PROD[0][2]+PREM)*p.fx/159+p.ds;
+    var perNaira=domL/p.fx;                                 // $m a year per ₦1/L
+    var beM=(crude-gov)/perNaira;
+    return {pump:pump,gate:gate,ip:ip,gov:gov+marginRev,crude:crude,diff:(gov+marginRev)-crude,
+      save:(sq-dom)*p.fx/1e6 - marginRev*p.fx/1e6, beM:beM, bePump:Math.floor(gate+p.ds+beM), fc:fc, fin:fin, k:k,
+      share:PROD[0][1]*(p.V+PROD[0][2])/slate};
+  }
+
+  function read(){var p={};ids.forEach(function(i){var v=parseFloat($(i).value);p[i]=isFinite(v)?v:DEF[i]});return p}
+  function write(p){ids.forEach(function(i){$(i).value=p[i]});$("mr").value=p.m}
+  var N=function(x){return "₦"+Math.round(x).toLocaleString("en-NG")};
+  var bn=function(x){return "$"+(Math.abs(x)/1000).toFixed(2)+"bn"};
+
+  function render(){
+    var p=read(), r=model(p);
+    $("pump").innerHTML=N(r.pump)+"<small>per litre</small>";
+    var mx=Math.max(r.pump,r.ip)*1.05;
+    $("b1").style.width=(r.pump/mx*100)+"%"; $("b1v").textContent=N(r.pump);
+    $("b2").style.width=(r.ip/mx*100)+"%"; $("b2v").textContent=N(r.ip);
+    var pct=Math.round((1-r.pump/r.ip)*100);
+    $("verdict").textContent = pct>=0 ? "Nigerians pay about "+pct+"% less than import parity, with no price-support payment." :
+      "This price is "+(-pct)+"% above import parity. That comes from the margin or crude value you chose, not from the method.";
+    if(Math.abs(r.diff)<10){
+      $("gap").textContent="About equal"; $("gapPill").className="pill ok"; $("gapPill").textContent="Matches selling crude";
+      $("gapD").textContent="Government earns about the same as selling the crude, while fuel stays below import parity.";
+    } else if(r.diff<0){
+      $("gap").textContent="−"+bn(r.diff)+" a year"; $("gapPill").className="pill warn"; $("gapPill").textContent="Resource dividend";
+      $("gapD").textContent="Revenue left with fuel buyers instead of collected by selling the crude. It is calculated, so it can be approved and published.";
+    } else {
+      $("gap").textContent="+"+bn(r.diff)+" a year"; $("gapPill").className="pill ok"; $("gapPill").textContent="More than selling crude";
+      $("gapD").textContent="Government receives more than it would by selling the same crude, while fuel stays below import parity.";
+    }
+    if(r.beM>0){ $("be").textContent=N(r.bePump); $("beD").textContent="At this pump price, government earns as much as by selling the crude. Still "+Math.round((1-r.bePump/r.ip)*100)+"% below import parity."; }
+    else { $("be").textContent="Already met"; $("beD").textContent="With these inputs, government already earns at least as much as selling the crude, at full cost."; }
+    $("save").textContent="₦"+r.save.toFixed(1)+"tn";
+    var rows=[["Crude, valued at",p.ce],["Crude transport (pipeline or ship)",p.deliv],["Refinery toll",p.toll],["Storage and truck loading (refinery)",p.fac],["Tracking and admin",p.admin],["Short-term finance",r.fin]];
+    var h="";rows.forEach(function(x){h+="<tr><td>"+x[0]+"</td><td class='n'>$"+x[1].toFixed(2)+"</td></tr>"});
+    h+="<tr class='total'><td>Cost of one barrel’s products</td><td class='n'>$"+r.fc.toFixed(2)+"</td></tr>";
+    $("stack").innerHTML=h;
+    $("formula").innerHTML="Petrol at the pump = $"+r.fc.toFixed(2)+" × "+(r.share*100).toFixed(1)+"% petrol’s share of value ÷ "+(PROD[0][1]*159).toFixed(1)+" litres × ₦"+p.fx.toLocaleString("en-NG")+
+      " + ₦"+p.ds+" distribution + ₦"+p.m+" margin = <span class='hl'>"+N(r.pump)+"</span>";
+  }
+
+  function setPressed(name){document.querySelectorAll("#presets button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.p===name?"true":"false")})}
+  function applyPreset(name){
+    var p=Object.assign({},DEF), s=PRESETS[name]||{};
+    Object.keys(s).forEach(function(k){p[k]=s[k]});
+    if(p.ce==="world") p.ce=p.V;
+    if(p.m==="parity"){p.m=0; var r=model(p); p.m=Math.max(0,Math.round(r.beM));}
+    write(p); setPressed(name); render();
+  }
+  document.querySelectorAll("#presets button").forEach(function(b){b.addEventListener("click",function(){applyPreset(b.dataset.p)})});
+  document.querySelectorAll("[data-toll]").forEach(function(b){b.addEventListener("click",function(){$("toll").value=b.dataset.toll;setPressed("");render()})});
+  document.querySelectorAll("[data-ce]").forEach(function(b){b.addEventListener("click",function(){$("ce").value=b.dataset.ce==="world"?$("V").value:44;setPressed("");render()})});
+  ids.forEach(function(i){$(i).addEventListener("input",function(){if(i==="m")$("mr").value=$("m").value;setPressed("");render()})});
+  $("mr").addEventListener("input",function(){$("m").value=$("mr").value;setPressed("");render()});
+  $("f").addEventListener("submit",function(e){e.preventDefault()});
+  applyPreset("paper");
+})();
+</script>
+
+</body>
+</html>
